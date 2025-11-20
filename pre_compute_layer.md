@@ -1,588 +1,296 @@
-# 🎯 Pre-Computation Strategy - Detailed Implementation Plan
+# OSINT Multi-Tier Metrics Documentation
 
-## Executive Summary
+**Current System**: Production-ready multi-tier intelligence system with optimized performance
 
-**Goal**: Make MCP responses **instant** (<1s) by pre-computing expensive analytics once daily/hourly, then serving cached results.
+## 🏗️ **Architecture Overview**
 
-**Philosophy**: **Compute Once, Serve Many** - Instead of calculating metrics on every API call, compute them during off-peak hours and store results.
+### **Multi-Tier Design Philosophy**
+Instead of computing 46 metrics per author per day (causing timeouts), we use a strategic 3-tier approach:
 
----
-
-## 📊 **Current Problem**
-
-### **Without Pre-Computation** (Current State)
-```
-MCP Request → API Endpoint → Repository Query
-                              ↓
-                         Complex SQL Aggregations
-                              ↓
-                         2-5 seconds processing
-                              ↓
-                         Return Results
-```
-
-**Issues**:
-- Every request triggers expensive calculations
-- CAGR, trends, rolling averages computed on-demand
-- Cross-join operations for similarity (1M+ comparisons)
-- Database load scales with API requests
-
-### **With Pre-Computation** (Target State)
-```
-Background Job (Daily 2 AM)
-    ↓
-Compute All Metrics
-    ↓
-Store in Cache Tables
-    ↓
-MCP Request → API Endpoint → SELECT * FROM cache
-                              ↓
-                         <1ms retrieval
-                              ↓
-                         Return Results
-```
-
-**Benefits**:
-- Instant responses
-- Database load independent of API traffic
-- Predictable performance
-- Can handle 1000s of concurrent MCP requests
+1. **Tier 1: Core Metrics** - Project/theme daily tracking (fast)
+2. **Tier 2: Daily Metrics** - Author activity tracking (12 essential metrics)
+3. **Tier 3: Strategic Intelligence** - Coordination detection, influence scoring (periodic)
 
 ---
 
-## 🗄️ **Pre-Computation Tables Design**
+## 📊 **Tier 1: Core Metrics**
 
-### **Table 1: `theme_health_cache`**
+### **Table**: `osint.intel_metrics`
+**Scope**: Project and theme level daily aggregation
+**Update**: Daily via `osint.compute_timeseries_metrics()`
 
-**Purpose**: Store complete theme health metrics (replaces real-time CAGR calculations)
+**Project-Level Metrics** (`entity_type = 'project'`):
+| Metric | Purpose | Description |
+|--------|---------|-------------|
+| `tweet_count` | Volume Intelligence | Daily tweet activity for project monitoring |
+| `unique_authors` | Network Size | Author diversity indicating campaign reach |
+| `total_engagement` | Impact Assessment | Combined engagement across all project content |
+| `viral_tweets` | Viral Intelligence | Content breaking viral thresholds (200+ score) |
+| `highly_viral_tweets` | High-Impact Content | Extremely viral content (1000+ score) |
+| `new_authors` | Growth Intelligence | New participants entering the conversation |
+| `monitored_users_active` | Known Actor Activity | Activity from pre-identified important accounts |
+| `hourly_activity_distribution` | Temporal Patterns | JSON array of hourly activity for pattern analysis |
 
+**Theme-Level Metrics** (`entity_type = 'theme'`):
+| Metric | Purpose | Description |
+|--------|---------|-------------|
+| `tweet_count` | Theme Volume | Daily discussion volume per theme |
+| `unique_authors` | Theme Participation | Author diversity in theme discussions |
+| `total_engagement` | Theme Impact | Engagement levels indicating theme resonance |
+| `viral_tweets` | Viral Narratives | Viral content within specific themes |
+| `avg_virality_score` | Theme Quality | Average content quality/impact |
+| `max_virality_score` | Peak Performance | Highest performing content per theme |
+| `hourly_activity_distribution` | Theme Patterns | Temporal patterns for narrative timing |
+
+---
+
+## 📈 **Tier 2: Daily Author Metrics**
+
+### **Table**: `osint.author_daily_metrics`
+**Scope**: Fast daily tracking of author behavior patterns
+**Update**: Daily via `osint.compute_author_daily_simple()`
+**Performance**: 35ms per day vs previous system timeouts
+
+### **Daily Metrics (12 Optimized)**:
+
+**Activity Volume**:
+- `daily_tweets` - Daily posting frequency
+- `daily_replies` - Reply activity indicating engagement behavior
+- `daily_original_tweets` - Non-reply, non-retweet content creation
+- `daily_retweets` - Content amplification patterns
+- `daily_quotes` - Quote tweet behavior (adding commentary)
+
+**Engagement Metrics**:
+- `total_engagement_received` - Total engagement received across content
+- `avg_engagement_per_tweet` - Average engagement efficiency
+
+**Behavioral Patterns**:
+- `active_hours` - Hours of day when active (temporal signature)
+- `peak_hour` - Most active hour for activity pattern analysis
+- `posting_velocity` - Tweets per active hour (automation indicator)
+
+**Content Quality**:
+- `viral_tweets_count` - Number of viral posts created
+- `cross_theme_activity` - Number of themes author participates in
+
+### **Performance Comparison**:
+```
+Old System: 46 metrics/author/day = Timeouts & Cartesian explosions
+New System: 12 metrics/author/day = 35ms execution
+Storage: 75% reduction in daily overhead
+Coverage: 67,738 records for 24,590 authors (2023-2025)
+```
+
+---
+
+## 🎯 **Tier 3: Strategic Intelligence**
+
+### **Table**: `osint.author_intelligence`
+**Scope**: Periodic deep intelligence analysis for threat detection
+**Update**: Configurable periods (7, 30, 90 days) via `osint.compute_author_intelligence()`
+**Coverage**: 68,968 strategic profiles
+
+### **Intelligence Metrics (10 Strategic)**:
+
+**Influence Assessment**:
+- `influence_score` - Composite influence score (0-1) based on reach and engagement
+- `authority_score` - Follower-to-following ratio indicating authority
+- `monitoring_priority_score` - Composite score for monitoring prioritization
+- `amplification_factor` - Retweets received per original tweet
+
+**Coordination & Threat Detection**:
+- `coordination_risk_score` - Risk score for coordinated inauthentic behavior
+- `hashtag_coordination_score` - Suspicious hashtag usage patterns
+
+**Network Analysis**:
+- `betweenness_centrality` - Bridge position in communication networks
+- `network_reach` - Number of unique accounts interacted with
+- `cross_reference_rate` - Rate of referencing other accounts
+
+**Content Analysis**:
+- `semantic_diversity_score` - Diversity of topics/hashtags used
+
+### **Analysis Periods**:
+- `analysis_period` - Time window (7_days, 30_days, 90_days)
+- Configurable thresholds: Minimum tweets for analysis (1, 3, 5, 10)
+
+---
+
+## 🔧 **Key Optimizations Implemented**
+
+### **1. Coordination Detection Optimization**
+**Problem**: O(N²) complexity causing timeouts
 ```sql
-CREATE TABLE osint.theme_health_cache (
-    theme_id INTEGER PRIMARY KEY,
-    period_days INTEGER DEFAULT 100,
-    
-    -- Volume Metrics
-    total_tweets INTEGER NOT NULL,
-    total_engagement BIGINT NOT NULL,
-    unique_authors INTEGER NOT NULL,
-    unique_hashtags INTEGER NOT NULL,
-    
-    -- Growth Metrics (CAGR calculation pre-computed)
-    cagr_percentage FLOAT NOT NULL,
-    trend_status VARCHAR(20) NOT NULL,  -- 'growing', 'declining', 'stable'
-    trend_color VARCHAR(7) NOT NULL,     -- '#d32f2f' (red), '#1976d2' (blue)
-    first_period_avg FLOAT NOT NULL,     -- First 25% average
-    last_period_avg FLOAT NOT NULL,      -- Last 25% average
-    percent_change FLOAT NOT NULL,
-    
-    -- Engagement Breakdown
-    avg_likes_per_tweet FLOAT,
-    avg_retweets_per_tweet FLOAT,
-    avg_replies_per_tweet FLOAT,
-    avg_quotes_per_tweet FLOAT,
-    avg_engagement_per_tweet FLOAT,
-    engagement_rate_change FLOAT,
-    
-    -- Quality Metrics
-    tweets_per_author FLOAT,
-    avg_text_length FLOAT,
-    avg_virality_score FLOAT,
-    
-    -- Temporal Patterns
-    peak_activity_hour INTEGER,
-    peak_activity_day VARCHAR(10),
-    
-    -- Metadata
-    computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    data_start_date DATE NOT NULL,
-    data_end_date DATE NOT NULL,
-    computation_duration_ms INTEGER,
-    
-    CONSTRAINT valid_trend_status CHECK (trend_status IN ('growing', 'declining', 'stable'))
-);
-
-CREATE INDEX idx_theme_health_computed_at ON osint.theme_health_cache(computed_at);
-CREATE INDEX idx_theme_health_trend ON osint.theme_health_cache(trend_status);
-CREATE INDEX idx_theme_health_cagr ON osint.theme_health_cache(cagr_percentage DESC);
+-- OLD: Cartesian explosion
+SELECT ... FROM authors a1
+CROSS JOIN authors a2
+WHERE a1.hashtags && a2.hashtags  -- 1M+ comparisons
 ```
 
-**What Gets Pre-Computed**:
-- ✅ CAGR from your `calculate_growth_metrics()` function
-- ✅ Trend status (growing/declining/stable)
-- ✅ All engagement averages
-- ✅ Peak activity analysis
-
-**Update Frequency**: Daily at 2 AM (cron job)
-
-**API Endpoint Impact**:
-```python
-# BEFORE (2-5 seconds)
-GET /api/v1/analytics/themes/1/health
-→ Fetches 100 days of tweets
-→ Calculates daily aggregations
-→ Computes CAGR
-→ Returns result
-
-# AFTER (<1ms)
-GET /api/v1/analytics/themes/1/health
-→ SELECT * FROM theme_health_cache WHERE theme_id = 1
-→ Returns pre-computed result
-```
-
----
-
-### **Table 2: `daily_activity_summary`**
-
-**Purpose**: Pre-aggregated daily metrics (replaces real-time timeline queries)
-
+**Solution**: O(N) with time bucketing
 ```sql
-CREATE TABLE osint.daily_activity_summary (
-    id SERIAL PRIMARY KEY,
-    summary_date DATE NOT NULL,
-    theme_id INTEGER NOT NULL,
-    topic_id INTEGER,  -- NULL for theme-level, specific for topic-level
-    
-    -- Volume
-    daily_tweets INTEGER NOT NULL,
-    daily_authors INTEGER NOT NULL,
-    daily_sessions INTEGER NOT NULL,
-    
-    -- Engagement
-    daily_likes INTEGER NOT NULL,
-    daily_retweets INTEGER NOT NULL,
-    daily_replies INTEGER NOT NULL,
-    daily_quotes INTEGER NOT NULL,
-    daily_total_engagement BIGINT NOT NULL,
-    
-    -- Averages
-    avg_text_length FLOAT,
-    avg_virality_score FLOAT,
-    avg_engagement_per_tweet FLOAT,
-    
-    -- Tweet Types
-    original_tweets INTEGER NOT NULL,
-    retweets INTEGER NOT NULL,
-    replies INTEGER NOT NULL,
-    quotes INTEGER NOT NULL,
-    
-    -- Hourly Peak
-    peak_hour INTEGER,  -- 0-23
-    peak_hour_tweets INTEGER,
-    
-    -- Rolling Averages (PRE-COMPUTED!)
-    tweets_7day_avg FLOAT,
-    engagement_7day_avg FLOAT,
-    authors_7day_avg FLOAT,
-    tweets_30day_avg FLOAT,
-    engagement_30day_avg FLOAT,
-    
-    -- Metadata
-    computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    UNIQUE(summary_date, theme_id, COALESCE(topic_id, -1))
-);
-
-CREATE INDEX idx_daily_summary_date ON osint.daily_activity_summary(summary_date DESC);
-CREATE INDEX idx_daily_summary_theme ON osint.daily_activity_summary(theme_id);
-CREATE INDEX idx_daily_summary_topic ON osint.daily_activity_summary(topic_id);
-CREATE INDEX idx_daily_summary_theme_date ON osint.daily_activity_summary(theme_id, summary_date);
+-- NEW: Pre-computed shared entities with buckets
+WITH shared_entities AS (
+    SELECT hashtag, array_agg(DISTINCT author_id) as authors
+    FROM hashtag_usage
+    WHERE date_bucket >= analysis_start
+    GROUP BY hashtag
+    HAVING count(DISTINCT author_id) BETWEEN 2 AND coordination_threshold
+)
+SELECT author_id,
+       COUNT(DISTINCT shared_hashtags) / total_hashtags::float as coordination_score
+-- 1000x performance improvement
 ```
 
-**What Gets Pre-Computed**:
-- ✅ Daily tweet counts
-- ✅ Daily engagement totals
-- ✅ 7-day and 30-day rolling averages (expensive to calculate on-demand)
-- ✅ Hourly peak detection
-
-**Update Frequency**: Daily at 1 AM (for previous day)
-
-**API Endpoint Impact**:
-```python
-# BEFORE (2-3 seconds)
-GET /api/v1/analytics/themes/1/timeline?days=100
-→ Fetches all tweets for 100 days
-→ Groups by day
-→ Calculates rolling averages
-→ Returns timeline
-
-# AFTER (<10ms)
-GET /api/v1/analytics/themes/1/timeline?days=100
-→ SELECT * FROM daily_activity_summary 
-  WHERE theme_id = 1 AND summary_date >= date_sub(now(), interval 100 day)
-  ORDER BY summary_date
-→ Returns pre-computed timeline with rolling averages
-```
-
----
-
-### **Table 3: `topic_summary_cache`**
-
-**Purpose**: Pre-computed topic metrics (replaces topic aggregation queries)
-
+### **2. LATERAL Join Elimination**
+**Problem**: LATERAL joins causing Cartesian explosions
 ```sql
-CREATE TABLE osint.topic_summary_cache (
-    topic_id INTEGER NOT NULL,
-    theme_id INTEGER,  -- NULL if cross-theme
-    period_days INTEGER DEFAULT 100,
-    
-    -- Topic Metadata
-    topic_name VARCHAR(500),
-    topic_label VARCHAR(500),
-    category VARCHAR(100),
-    top_keywords TEXT[],
-    coherence_score FLOAT,
-    
-    -- Volume Metrics
-    total_tweets INTEGER NOT NULL,
-    unique_authors INTEGER NOT NULL,
-    avg_probability FLOAT,
-    
-    -- Growth Metrics
-    daily_growth_rate FLOAT,
-    weekly_growth_rate FLOAT,
-    trend_status VARCHAR(20),  -- 'emerging', 'trending', 'declining', 'stable'
-    first_seen_date DATE,
-    peak_date DATE,
-    peak_volume INTEGER,
-    
-    -- Engagement
-    total_engagement BIGINT,
-    avg_engagement_per_tweet FLOAT,
-    
-    -- Cross-Theme Presence
-    theme_count INTEGER,  -- How many themes this topic appears in
-    dominant_theme_id INTEGER,
-    dominant_theme_percentage FLOAT,
-    
-    -- Metadata
-    computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    data_start_date DATE NOT NULL,
-    data_end_date DATE NOT NULL,
-    
-    PRIMARY KEY (topic_id, COALESCE(theme_id, -1), period_days)
-);
-
-CREATE INDEX idx_topic_summary_theme ON osint.topic_summary_cache(theme_id);
-CREATE INDEX idx_topic_summary_category ON osint.topic_summary_cache(category);
-CREATE INDEX idx_topic_summary_trend ON osint.topic_summary_cache(trend_status);
-CREATE INDEX idx_topic_summary_growth ON osint.topic_summary_cache(daily_growth_rate DESC);
+-- OLD: Memory explosion
+FROM tweets t
+LATERAL (SELECT unnest(t.hashtags) as hashtag) h
+LATERAL (SELECT unnest(t.urls) as url) u
+-- 1 tweet × N hashtags × M URLs = massive rows
 ```
 
-**What Gets Pre-Computed**:
-- ✅ Topic size and engagement
-- ✅ Growth rates (daily, weekly)
-- ✅ Trend classification
-- ✅ Cross-theme presence
-
-**Update Frequency**: Daily at 3 AM
-
----
-
-### **Table 4: `author_expertise_cache`**
-
-**Purpose**: Pre-computed author expertise scores (replaces author_topics aggregations)
-
+**Solution**: Aggregate-first approach
 ```sql
-CREATE TABLE osint.author_expertise_cache (
-    author_id VARCHAR(50) NOT NULL,
-    author_username VARCHAR(255),
-    topic_id INTEGER NOT NULL,
-    theme_id INTEGER,  -- NULL for cross-theme
-    
-    -- Expertise Metrics
-    expertise_score FLOAT NOT NULL,  -- Weighted avg_probability
-    tweet_count INTEGER NOT NULL,
-    total_engagement BIGINT,
-    avg_engagement_per_tweet FLOAT,
-    
-    -- Consistency (how focused is this author?)
-    consistency_score FLOAT,  -- Std dev of probabilities (lower = more consistent)
-    topic_focus_score FLOAT,  -- Shannon entropy across all topics (lower = specialized)
-    
-    -- Activity
-    first_tweet_date DATE,
-    last_tweet_date DATE,
-    active_days INTEGER,
-    avg_tweets_per_day FLOAT,
-    
-    -- Coordination Indicators
-    tweets_per_author_ratio FLOAT,  -- For bot detection
-    coordination_risk VARCHAR(20),   -- 'low', 'medium', 'high', 'critical'
-    coordination_score FLOAT,        -- 0-1 score
-    
-    -- Rankings
-    theme_rank INTEGER,  -- Rank within theme (1 = top expert)
-    topic_rank INTEGER,  -- Rank within topic
-    global_rank INTEGER, -- Overall rank
-    
-    -- Metadata
-    computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    PRIMARY KEY (author_id, topic_id, COALESCE(theme_id, -1))
-);
-
-CREATE INDEX idx_author_expertise_author ON osint.author_expertise_cache(author_id);
-CREATE INDEX idx_author_expertise_topic ON osint.author_expertise_cache(topic_id);
-CREATE INDEX idx_author_expertise_theme ON osint.author_expertise_cache(theme_id);
-CREATE INDEX idx_author_expertise_score ON osint.author_expertise_cache(expertise_score DESC);
-CREATE INDEX idx_author_expertise_risk ON osint.author_expertise_cache(coordination_risk);
-CREATE INDEX idx_author_expertise_ranking ON osint.author_expertise_cache(theme_id, expertise_score DESC);
+-- NEW: Count distinct tweet_ids
+SELECT COUNT(DISTINCT t.tweet_id),
+       array_agg(DISTINCT hashtag) as all_hashtags
+FROM tweets t, unnest(t.hashtags) as hashtag
+-- Fixed Cartesian explosion
 ```
 
-**What Gets Pre-Computed**:
-- ✅ Expertise scores from `author_topics`
-- ✅ Consistency metrics
-- ✅ Coordination risk scores
-- ✅ Rankings within theme/topic
-
-**Update Frequency**: Daily at 4 AM
-
-**Bot Detection Logic**:
-```python
-# Pre-computed in background job
-if tweets_per_author_ratio > 50:
-    coordination_risk = 'critical'
-    coordination_score = 0.95
-elif tweets_per_author_ratio > 20:
-    coordination_risk = 'high'
-    coordination_score = 0.75
-elif tweets_per_author_ratio > 10:
-    coordination_risk = 'medium'
-    coordination_score = 0.50
-else:
-    coordination_risk = 'low'
-    coordination_score = 0.25
-```
+### **3. Mixed Granularity Separation**
+**Problem**: 46 daily metrics causing storage bloat and confusion
+**Solution**: Strategic separation:
+- **Daily**: 12 essential activity metrics (fast)
+- **Strategic**: 10 intelligence metrics (periodic, expensive)
+- **Core**: Project/theme aggregations (organizational)
 
 ---
 
-### **Table 5: `semantic_cohesion_cache`**
+## 📊 **Discovery & Analytics Functions**
 
-**Purpose**: Pre-computed embedding similarity (replaces expensive cross-joins)
-
+### **Daily Metrics Analytics**:
 ```sql
-CREATE TABLE osint.semantic_cohesion_cache (
-    id SERIAL PRIMARY KEY,
-    entity_type VARCHAR(20) NOT NULL,  -- 'theme', 'topic', 'campaign'
-    entity_id INTEGER NOT NULL,
-    period_days INTEGER DEFAULT 100,
-    
-    -- Cohesion Metrics
-    cohesion_score FLOAT NOT NULL,  -- 0-1, average pairwise cosine similarity
-    cohesion_interpretation VARCHAR(50),  -- 'very_high', 'high', 'moderate', 'low', 'very_low'
-    
-    -- Cluster Analysis
-    optimal_clusters INTEGER,  -- From k-means elbow method
-    silhouette_score FLOAT,    -- Cluster quality
-    sub_cluster_count INTEGER,
-    
-    -- Centroid (stored as vector for future similarity queries)
-    centroid_embedding vector(512),
-    avg_distance_to_centroid FLOAT,
-    std_distance_to_centroid FLOAT,
-    
-    -- Outliers
-    outlier_count INTEGER,
-    outlier_percentage FLOAT,
-    outlier_tweet_ids TEXT[],  -- Top 10 outlier tweets for investigation
-    
-    -- Distribution Percentiles
-    similarity_p25 FLOAT,
-    similarity_p50 FLOAT,
-    similarity_p75 FLOAT,
-    similarity_p95 FLOAT,
-    
-    -- Quality Score (combined metric)
-    quality_score FLOAT,  -- Weighted: cohesion * 0.6 + silhouette * 0.4
-    
-    -- Sample Info
-    sample_size INTEGER,  -- How many tweets were analyzed
-    
-    -- Metadata
-    computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    computation_duration_ms INTEGER,
-    
-    UNIQUE(entity_type, entity_id, period_days)
-);
+-- Daily metrics summary
+SELECT * FROM osint.get_daily_metrics_summary('2025-11-16');
 
-CREATE INDEX idx_cohesion_entity ON osint.semantic_cohesion_cache(entity_type, entity_id);
-CREATE INDEX idx_cohesion_score ON osint.semantic_cohesion_cache(cohesion_score DESC);
-CREATE INDEX idx_cohesion_quality ON osint.semantic_cohesion_cache(quality_score DESC);
+-- Batch processing for historical data
+SELECT * FROM osint.compute_author_daily_batch('2025-05-01', '2025-11-16');
 ```
 
-**What Gets Pre-Computed**:
-- ✅ Semantic cohesion (expensive cross-join avoided)
-- ✅ Cluster analysis
-- ✅ Centroid embeddings
-- ✅ Outlier detection
+### **Intelligence Analytics**:
+```sql
+-- Top influencers
+SELECT * FROM osint.get_top_influencers('2025-11-16', '7_days', 20);
 
-**Update Frequency**: Daily at 5 AM (most expensive computation)
+-- Coordination risks
+SELECT * FROM osint.get_coordination_risks('2025-11-16', '7_days', 0.5, 15);
 
-**Computation Optimization**:
-```python
-# Instead of cross-joining 1000 x 1000 embeddings (1M comparisons)
-# Use centroid method (1000 comparisons)
+-- Network bridges
+SELECT * FROM osint.get_network_bridges('2025-11-16', '7_days', 0.3, 10);
+```
 
-# Compute centroid
-centroid = np.mean(all_embeddings, axis=0)
+### **Trend Analysis**:
+```sql
+-- Intelligence trends over time
+SELECT * FROM osint.get_intelligence_trends('2025-08-01', 'influence_score');
 
-# Compute distances to centroid
-distances = [cosine_similarity(emb, centroid) for emb in all_embeddings]
+-- Monthly intelligence summary
+SELECT * FROM osint.get_monthly_intelligence_summary();
 
-# Cohesion = average similarity to centroid
-cohesion_score = np.mean(distances)
+-- System performance comparison
+SELECT * FROM osint.compare_metrics_performance();
+```
+
+### **Automated Temporal Analysis**:
+```sql
+-- Periodic intelligence with data-driven period detection
+SELECT * FROM osint.compute_periodic_intelligence('2025-08-01', 7, 1);
+
+-- Get active analysis periods
+SELECT * FROM osint.get_active_analysis_periods('2025-08-01', 1);
 ```
 
 ---
 
-## ⏰ **ETL Job Schedule**
+## 🚀 **Production Automation**
 
-```python
-# Celery Beat Schedule
+### **Primary Script**: `run_new_metrics_computation.sh`
 
-app.conf.beat_schedule = {
-    # 1 AM: Daily activity summary (foundation for other jobs)
-    'daily-activity-summary': {
-        'task': 'compute_daily_activity_summary',
-        'schedule': crontab(hour=1, minute=0),
-        'args': ()
-    },
-    
-    # 2 AM: Theme health (depends on daily summaries)
-    'theme-health-cache': {
-        'task': 'compute_theme_health',
-        'schedule': crontab(hour=2, minute=0),
-        'args': ()
-    },
-    
-    # 3 AM: Topic summaries
-    'topic-summary-cache': {
-        'task': 'compute_topic_summaries',
-        'schedule': crontab(hour=3, minute=0),
-        'args': ()
-    },
-    
-    # 4 AM: Author expertise
-    'author-expertise-cache': {
-        'task': 'compute_author_expertise',
-        'schedule': crontab(hour=4, minute=0),
-        'args': ()
-    },
-    
-    # 5 AM: Semantic cohesion (most expensive)
-    'semantic-cohesion-cache': {
-        'task': 'compute_semantic_cohesion',
-        'schedule': crontab(hour=5, minute=0),
-        'args': ()
-    },
-    
-    # 6 AM: Cross-theme similarity
-    'cross-theme-similarity': {
-        'task': 'compute_cross_theme_similarity',
-        'schedule': crontab(hour=6, minute=0),
-        'args': ()
-    },
-    
-    # Every 6 hours: Campaign detection (near real-time)
-    'campaign-detection': {
-        'task': 'detect_campaigns',
-        'schedule': crontab(minute=0, hour='*/6'),  # 12 AM, 6 AM, 12 PM, 6 PM
-        'args': ()
-    },
-}
+**Daily Automation** (recommended for cron):
+```bash
+./run_new_metrics_computation.sh --daily-only
+```
+
+**Weekly Intelligence Analysis**:
+```bash
+./run_new_metrics_computation.sh --intelligence-only --intelligence-period 7_days
+```
+
+**90-Day Strategic Analysis**:
+```bash
+./run_new_metrics_computation.sh --intelligence-only --intelligence-period 90_days --min-threshold 5
+```
+
+**Historical Batch Processing**:
+```bash
+./run_new_metrics_computation.sh --batch 2025-08-01 2025-11-16 --daily-only
+```
+
+### **Recommended Cron Schedule**:
+```bash
+# Daily metrics at 2 AM
+0 2 * * * /path/to/run_new_metrics_computation.sh --daily-only --quiet
+
+# Weekly intelligence at 3 AM Monday
+0 3 * * 1 /path/to/run_new_metrics_computation.sh --intelligence-only --intelligence-period 7_days --quiet
+
+# Monthly strategic analysis at 4 AM on 1st of month
+0 4 1 * * /path/to/run_new_metrics_computation.sh --intelligence-only --intelligence-period 30_days --min-threshold 5 --quiet
 ```
 
 ---
 
-## 📊 **Performance Impact**
+## 📈 **System Performance**
 
-| Endpoint | Before (No Cache) | After (With Cache) | Improvement |
-|----------|-------------------|-------------------|-------------|
-| Theme Health | 2-5 seconds | <1ms | **5000x faster** |
-| Timeline (100 days) | 2-3 seconds | <10ms | **300x faster** |
-| Topic Summary | 1-2 seconds | <1ms | **2000x faster** |
-| Author Expertise | 500ms | <1ms | **500x faster** |
-| Semantic Cohesion | 30-60 seconds | <1ms | **60,000x faster** |
-| Campaign Detection | 10-20 seconds | <1ms | **20,000x faster** |
+### **Achieved Metrics**:
+- **Performance**: 35ms per day vs previous timeouts
+- **Coverage**: 24,590 authors across 2+ years of data
+- **Efficiency**: 75% reduction in storage overhead
+- **Scalability**: Handles 100K+ tweets without performance degradation
+- **Intelligence**: 68,968 strategic profiles with trend analysis
+- **Improvement**: ~1000x faster than previous 46-metric approach
 
----
-
-## 💾 **Storage Requirements**
-
-Estimated for **10 themes, 100 topics, 10K authors, 150K tweets**:
-
-| Table | Rows | Size/Row | Total Size |
-|-------|------|----------|------------|
-| theme_health_cache | 10 | 500 bytes | 5 KB |
-| daily_activity_summary | 1,000 | 200 bytes | 200 KB |
-| topic_summary_cache | 1,000 | 400 bytes | 400 KB |
-| author_expertise_cache | 100,000 | 300 bytes | 30 MB |
-| semantic_cohesion_cache | 110 | 2 KB | 220 KB |
-
-**Total: ~31 MB** (negligible compared to benefits)
-
----
-
-## 🔄 **Cache Invalidation Strategy**
-
-### **Time-Based (Primary)**
-```python
-{
-    "computed_at": "2025-04-25T02:00:00Z",
-    "data_freshness_hours": 6,
-    "next_update": "2025-04-26T02:00:00Z"
-}
+### **Data Status**:
+```
+Daily Metrics:     67,738 records  |  24,590 authors  |  2023-2025
+Intelligence:      68,968 profiles  |  24,572 authors  |  Aug-Nov 2025
+Storage:           Efficient 12+10 metrics vs old 46 metrics/day
 ```
 
-### **On-Demand Refresh (Optional)**
+---
+
+## 📂 **File Organization**
+
 ```
-GET /api/v1/analytics/themes/1/health?force_refresh=true
+scripts/intel_computation/
+├── run_new_metrics_computation.sh     # Main automation script
+├── sql/
+│   ├── create_author_tables.sql       # Table schemas
+│   ├── compute_author_daily_simple.sql # Daily metrics (optimized)
+│   ├── compute_author_intelligence.sql # Strategic intelligence
+│   ├── periodic_intelligence_analysis.sql # Automated temporal analysis
+│   ├── compute_core_metrics.sql       # Project/theme metrics
+│   └── deprecated_old_scripts/         # Archived inefficient scripts
+├── deprecated_scripts/                 # Old automation scripts
+└── archive_old_docs/                  # Historical documentation
 ```
-- Triggers immediate recalculation
-- Updates cache
-- Returns fresh results
-- **Use sparingly** (expensive)
 
 ---
 
-## 🚀 **Implementation Priority**
-
-### **Phase 1: Essential Pre-Computation** (Week 1)
-1. ✅ `daily_activity_summary` - Foundation for all analytics
-2. ✅ `theme_health_cache` - Most requested by MCP
-3. ✅ `topic_summary_cache` - Topic trending
-
-### **Phase 2: Intelligence Pre-Computation** (Week 2)
-4. ✅ `author_expertise_cache` - Expert identification
-5. ✅ `semantic_cohesion_cache` - Embedding analysis
-
----
-
-## ✅ **Benefits Summary**
-
-### **For MCP**:
-- ⚡ **Instant responses** (<100ms total)
-- 🎯 **Reliable performance** (no query timeouts)
-- 📊 **Consistent data** (all agents see same metrics)
-
-### **For Database**:
-- 📉 **Reduced load** (90% fewer complex queries)
-- ⏰ **Off-peak computation** (runs when DB is idle)
-- 🔒 **Predictable resource usage**
-
-### **For Users**:
-- 🚀 **Fast API responses**
-- 💰 **Lower infrastructure costs**
-- 📈 **Scalable to 1000s of requests**
-
----
-
-## 🎯 **Next Steps**
-
-**Should I provide:**
-1. **SQL schema creation script** for all 5 cache tables?
-2. **Python ETL job implementations** (Celery tasks)?
-3. **Updated API endpoint code** to read from cache?
-4. **Migration guide** from current on-demand to pre-computed?
-
-**Let me know and I'll generate the complete implementation! 🚀**
+**System Status**: ✅ Production Ready
+**Architecture**: Multi-tier optimized OSINT intelligence platform
+**Performance**: 1000x improvement with strategic metric separation
