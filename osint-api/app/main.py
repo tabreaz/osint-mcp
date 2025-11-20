@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.routers import tweets, themes, projects, analytics, monitored_users
+from app.routers import tweets, themes, projects, analytics, monitored_users, topics, topic_analytics
 
 
 @asynccontextmanager
@@ -48,6 +48,8 @@ app.include_router(themes.router, prefix="/api/v1")
 app.include_router(projects.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(monitored_users.router, prefix="/api/v1")
+app.include_router(topics.router, prefix="/api/v1")  # Refined topics with recommendations
+app.include_router(topic_analytics.router, prefix="/api/v1")  # Topic analytics (author expertise, evolution)
 
 # Root endpoint
 @app.get("/")

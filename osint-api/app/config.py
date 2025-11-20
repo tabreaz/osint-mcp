@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     PROJECTS_TABLE: str = "projects"
     QUERIES_TABLE: str = "queries"
     MONITORED_USERS_TABLE: str = "monitored_users"
+    TOPIC_DEFINITIONS_TABLE: str = "topic_definitions"
+    TOPIC_DEFINITIONS_REFINED_TABLE: str = "topic_definitions_refined"
+    TWEET_TOPICS_TABLE: str = "tweet_topics"
+    AUTHOR_TOPICS_TABLE: str = "author_topics"
+    TOPIC_EVOLUTION_TABLE: str = "topic_evolution"
 
     class Config:
         env_file = ".env"
