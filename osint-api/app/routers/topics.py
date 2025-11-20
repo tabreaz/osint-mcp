@@ -13,8 +13,8 @@ router = APIRouter(
 )
 
 
-@router.get("/refined", response_model=List[Dict[str, Any]])
-async def get_refined_topics(
+@router.get("/list", response_model=List[Dict[str, Any]])
+async def get_all_topics(
     category: Optional[str] = Query(None, description="Filter by category (e.g., 'Humanitarian Crisis')"),
     priority: Optional[str] = Query(None, description="Filter by priority: high|medium|low|ignore"),
     min_quality: Optional[float] = Query(None, ge=0, le=1, description="Minimum quality score"),
@@ -22,8 +22,8 @@ async def get_refined_topics(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get LLM-refined topics with clean names and actionable recommendations.
-    This is the PRIMARY endpoint for topic data - always use refined over raw.
+    Get all topics with clean names and categories.
+    Returns LLM-processed topics, not raw ML output.
     """
     repo = TopicRepository(db)
     topics = await repo.get_refined_topics(
@@ -50,8 +50,8 @@ async def get_refined_topics(
     ]
 
 
-@router.get("/refined/{topic_id}", response_model=Dict[str, Any])
-async def get_refined_topic(
+@router.get("/{topic_id}", response_model=Dict[str, Any])
+async def get_topic_details(
     topic_id: int,
     db: AsyncSession = Depends(get_db)
 ):
@@ -96,8 +96,8 @@ async def get_topics_by_category(
     return await repo.get_topics_by_category()
 
 
-@router.get("/actionable", response_model=List[Dict[str, Any]])
-async def get_actionable_topics(
+@router.get("/with-monitoring-actions", response_model=List[Dict[str, Any]])
+async def get_topics_with_monitoring_actions(
     limit: int = Query(50, le=200, description="Maximum results"),
     db: AsyncSession = Depends(get_db)
 ):

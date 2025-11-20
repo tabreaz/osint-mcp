@@ -19,7 +19,10 @@ This guide describes the data schemas and models used by the OSINT Monitoring AP
 - `quality_score` - Topic quality (0-1)
 - `relevance_to_project` - Project relevance (0-1)
 
-**API Access**: `/api/v1/topics/*`
+**API Access**:
+- `/api/v1/topics/list` - Get all topics
+- `/api/v1/topics/{id}` - Get specific topic
+- `/api/v1/topics/with-monitoring-actions` - Topics with actions
 
 ### 2. Themes (Business Categories)
 **Table**: `themes`
@@ -73,7 +76,7 @@ This guide describes the data schemas and models used by the OSINT Monitoring AP
 - `avg_probability` - Expertise score
 - `total_engagement` - Total engagement
 
-**API Access**: `/api/v1/topic-analytics/author-expertise`
+**API Access**: `/api/v1/topic-analytics/top-authors-by-topic`
 
 #### Topic Evolution
 **Table**: `topic_evolution`
@@ -86,7 +89,7 @@ This guide describes the data schemas and models used by the OSINT Monitoring AP
 - `growth_rate` - Growth percentage
 - `viral_tweets` - Viral content count
 
-**API Access**: `/api/v1/topic-analytics/evolution-trends`
+**API Access**: `/api/v1/topic-analytics/topic-trends-over-time`
 
 ## Response Schemas
 
@@ -179,7 +182,7 @@ This guide describes the data schemas and models used by the OSINT Monitoring AP
 ## For MCP Agents
 
 When working with this API:
-1. Use `/api/v1/topics/refined` for topic data (NOT raw)
-2. Use `/api/v1/topics/actionable` for monitoring setup
+1. Use `/api/v1/topics/list` for topic data (clean, not raw)
+2. Use `/api/v1/topics/with-monitoring-actions` for monitoring setup
 3. Use `/api/v1/topic-analytics/*` for relationships
 4. Ignore any mention of "raw" or "unrefined" data

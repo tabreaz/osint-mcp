@@ -88,22 +88,22 @@ osint_mcp_v2/
 | GET | `/api/v1/monitored-users/{id}` | Get specific user |
 | GET | `/api/v1/monitored-users/{id}/tweets` | Get tweets from user |
 
-### Topics (`/api/v1/topics`) - LLM-Refined ⭐
+### Topics (`/api/v1/topics`) - Clean & Categorized ⭐
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/topics/refined` | Get clean, categorized topics |
-| GET | `/api/v1/topics/refined/{id}` | Get single topic details |
+| GET | `/api/v1/topics/list` | Get all clean topics with categories |
+| GET | `/api/v1/topics/{id}` | Get single topic details |
 | GET | `/api/v1/topics/by-category` | Topics grouped by category |
-| GET | `/api/v1/topics/actionable` | Topics with monitoring actions |
-| GET | `/api/v1/topics/search` | Search topics |
+| GET | `/api/v1/topics/with-monitoring-actions` | Topics that have specific monitoring recommendations |
+| GET | `/api/v1/topics/search` | Search topics by name or category |
 | GET | `/api/v1/topics/statistics` | Overall topic metrics |
 
 ### Topic Analytics (`/api/v1/topic-analytics`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/topic-analytics/theme-topics` | Topics appearing in themes |
-| GET | `/api/v1/topic-analytics/author-expertise` | Find topic experts |
-| GET | `/api/v1/topic-analytics/evolution-trends` | Track topic momentum |
+| GET | `/api/v1/topic-analytics/topics-per-theme` | Which topics appear in each theme |
+| GET | `/api/v1/topic-analytics/top-authors-by-topic` | Find authors who post most about a topic |
+| GET | `/api/v1/topic-analytics/topic-trends-over-time` | Track topic volume changes over time |
 
 ### Analytics (`/api/v1/analytics`)
 | Method | Endpoint | Description |
@@ -116,7 +116,7 @@ osint_mcp_v2/
 
 All API endpoints (except `/health`) require an `X-API-Key` header:
 ```bash
-curl -H "X-API-Key: your-api-key" http://localhost:8000/api/v1/topics/refined
+curl -H "X-API-Key: your-api-key" http://localhost:8000/api/v1/topics/list
 ```
 
 ## 🚦 Quick Start
@@ -179,9 +179,9 @@ TOPIC_EVOLUTION_TABLE=topic_evolution
 
 ## 📝 Example Usage
 
-### Get Refined Topics with Actions
+### Get Topics with Monitoring Actions
 ```bash
-curl -X GET "http://localhost:8080/api/v1/topics/actionable?limit=10" \
+curl -X GET "http://localhost:8080/api/v1/topics/with-monitoring-actions?limit=10" \
   -H "X-API-Key: your-api-key"
 ```
 
@@ -201,15 +201,15 @@ Response includes machine-readable monitoring actions:
 }
 ```
 
-### Find Topic Experts
+### Find Top Authors for a Topic
 ```bash
-curl -X GET "http://localhost:8080/api/v1/topic-analytics/author-expertise?topic_id=26" \
+curl -X GET "http://localhost:8080/api/v1/topic-analytics/top-authors-by-topic?topic_id=26" \
   -H "X-API-Key: your-api-key"
 ```
 
-### Track Trending Topics
+### Track Topic Trends Over Time
 ```bash
-curl -X GET "http://localhost:8080/api/v1/topic-analytics/evolution-trends?hours=24" \
+curl -X GET "http://localhost:8080/api/v1/topic-analytics/topic-trends-over-time?hours=24" \
   -H "X-API-Key: your-api-key"
 ```
 

@@ -1,521 +1,370 @@
-# Comprehensive OSINT Analytics Architecture
-## Unified Theme, Topic, and Embedding Analytics System
+# OSINT Intelligence Architecture for MCP
+## Multi-Tier Intelligence System with Strategic Analytics
 
 ---
 
 ## Executive Summary
 
-This document outlines a comprehensive analytics architecture that unifies three complementary approaches:
-1. **Theme-based Analytics** - Business-defined categories with traditional metrics
-2. **ML Topic Modeling** - Unsupervised discovery of semantic clusters
-3. **Embedding Similarity** - Deep semantic understanding via vector operations
+This document outlines the **OSINT Intelligence Architecture** designed specifically for **Model Context Protocol (MCP)** integration. The system provides actionable intelligence through strategic analysis rather than basic CRUD operations.
+
+**Architecture Philosophy**: Intelligence-driven APIs that deliver insights, patterns, and threat detection capabilities to AI agents via MCP.
 
 ---
 
-## Current Database Infrastructure
+## Database Structure & Intelligence Metrics
 
-### Core Tables
-1. **Tweets & Collections**
-   - `tweets_deduplicated` - Core tweet data with engagement metrics
-   - `tweet_collections` - Collection session metadata
-   - `collection_sessions` - Links tweets to themes/queries
+### **Tier 1: Project-Level Intelligence**
+**Purpose**: High-level organizational intelligence and campaign monitoring
 
-2. **Themes & Projects**
-   - `themes` - Manually defined monitoring themes
-   - `projects` - High-level organizational units
-   - `queries` - Search queries associated with themes
-   - `monitored_users` - Tracked user accounts
+**Table**: `osint.intel_metrics` (entity_type = 'project')
 
-3. **Network & Relationships**
-   - `user_network` - User interaction patterns
-   - `twitter_user_profiles` - User profile information
-
-### ML/AI Tables (Advanced Analytics)
-4. **Embeddings**
-   - `tweet_embeddings` - 512-dim vectors from OpenAI text-embedding-3-small
-   - IVFFlat index for fast similarity search
-
-5. **Topic Modeling**
-   - `topic_definitions` - ML-discovered topics with keywords and coherence scores
-   - `tweet_topics` - Tweet-to-topic assignments with probabilities
-   - `author_topics` - Author expertise tracking
-   - `topic_evolution` - Time-series topic trends
-   - `topic_relationships` - Inter-topic connections
-
-6. **Media**
-   - `tweet_media` - Media URLs and metadata
+**Intelligence Metrics**:
+| Metric | Purpose | Description |
+|--------|---------|-------------|
+| `tweet_count` | Volume Intelligence | Daily tweet activity for project monitoring |
+| `unique_authors` | Network Size | Author diversity indicating campaign reach |
+| `total_engagement` | Impact Assessment | Combined engagement across all project content |
+| `viral_tweets` | Viral Intelligence | Content breaking viral thresholds (200+ score) |
+| `highly_viral_tweets` | High-Impact Content | Extremely viral content (1000+ score) |
+| `new_authors` | Growth Intelligence | New participants entering the conversation |
+| `monitored_users_active` | Known Actor Activity | Activity from pre-identified important accounts |
+| `hourly_activity_distribution` | Temporal Patterns | JSON array of hourly activity for pattern analysis |
 
 ---
 
-## Three-Layer Analytics Architecture
+### **Tier 2: Theme-Level Intelligence**
+**Purpose**: Topic-specific intelligence and narrative tracking
 
+**Table**: `osint.intel_metrics` (entity_type = 'theme')
+
+**Intelligence Metrics**:
+| Metric | Purpose | Description |
+|--------|---------|-------------|
+| `tweet_count` | Theme Volume | Daily discussion volume per theme |
+| `unique_authors` | Theme Participation | Author diversity in theme discussions |
+| `total_engagement` | Theme Impact | Engagement levels indicating theme resonance |
+| `viral_tweets` | Viral Narratives | Viral content within specific themes |
+| `avg_virality_score` | Theme Quality | Average content quality/impact |
+| `max_virality_score` | Peak Performance | Highest performing content per theme |
+| `hourly_activity_distribution` | Theme Patterns | Temporal patterns for narrative timing |
+
+---
+
+### **Tier 3: Author Daily Intelligence**
+**Purpose**: Fast daily tracking of author behavior patterns
+
+**Table**: `osint.author_daily_metrics`
+
+**Intelligence Metrics**:
+| Metric | Purpose | Description |
+|--------|---------|-------------|
+| `daily_tweets` | Activity Volume | Daily posting frequency |
+| `daily_replies` | Interaction Level | Reply activity indicating engagement behavior |
+| `daily_original_tweets` | Original Content | Non-reply, non-retweet content creation |
+| `daily_retweets` | Amplification Behavior | Content amplification patterns |
+| `daily_quotes` | Commentary Activity | Quote tweet behavior (adding commentary) |
+| `total_engagement_received` | Influence Indicator | Total engagement received across content |
+| `avg_engagement_per_tweet` | Content Quality | Average engagement efficiency |
+| `active_hours` | Activity Patterns | Hours of day when active (temporal signature) |
+| `peak_hour` | Prime Time | Most active hour for activity pattern analysis |
+| `posting_velocity` | Intensity Metric | Tweets per active hour (automation indicator) |
+| `viral_tweets_count` | Viral Content Production | Number of viral posts created |
+| `cross_theme_activity` | Scope Indicator | Number of themes author participates in |
+
+---
+
+### **Tier 4: Author Strategic Intelligence**
+**Purpose**: Periodic deep intelligence analysis for threat detection
+
+**Table**: `osint.author_intelligence`
+
+**Intelligence Metrics**:
+| Metric | Purpose | Description |
+|--------|---------|-------------|
+| `influence_score` | Power Assessment | Composite influence score (0-1) based on reach and engagement |
+| `authority_score` | Credibility Indicator | Follower-to-following ratio indicating authority |
+| `coordination_risk_score` | Threat Detection | Risk score for coordinated inauthentic behavior |
+| `betweenness_centrality` | Network Position | Bridge position in communication networks |
+| `network_reach` | Connection Scope | Number of unique accounts interacted with |
+| `cross_reference_rate` | Interaction Pattern | Rate of referencing other accounts |
+| `semantic_diversity_score` | Content Variety | Diversity of topics/hashtags used |
+| `hashtag_coordination_score` | Coordination Indicator | Suspicious hashtag usage patterns |
+| `monitoring_priority_score` | Priority Ranking | Composite score for monitoring prioritization |
+| `amplification_factor` | Reach Multiplier | Retweets received per original tweet |
+| `analysis_period` | Time Window | Analysis period (7_days, 30_days, 90_days) |
+
+---
+
+## Intelligence-Focused API Design for MCP
+
+### **Current Problem: CRUD-Based APIs**
+The existing API endpoints are designed for dashboard CRUD operations:
+- `GET /themes` - List themes (basic data retrieval)
+- `POST /themes` - Create theme (CRUD operation)
+- `PUT /themes/{id}` - Update theme (CRUD operation)
+- `DELETE /themes/{id}` - Delete theme (CRUD operation)
+
+**These APIs don't provide intelligence - they provide data management.**
+
+---
+
+### **NEW: Intelligence APIs for MCP**
+
+#### **1. Threat Detection & Assessment**
+```http
+GET /api/v1/intelligence/threats/coordination-risks
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Layer 1: Theme Analytics                  │
-│                 (Business/Operational View)                  │
-├─────────────────────────────────────────────────────────────┤
-│ • Human-defined categories based on business needs           │
-│ • Query-based data collection                                │
-│ • Traditional metrics (CAGR, engagement, reach)              │
-│ • Time-series analysis                                       │
-│ • Hashtag frequency analysis                                 │
-└─────────────────────────────────────────────────────────────┘
-                              ↓↑
-┌─────────────────────────────────────────────────────────────┐
-│                  Layer 2: Topic Modeling                     │
-│               (ML-Discovered Semantic Clusters)              │
-├─────────────────────────────────────────────────────────────┤
-│ • Unsupervised topic discovery (LDA/BERTopic)               │
-│ • Probability distributions per tweet                        │
-│ • Author expertise identification                            │
-│ • Topic coherence and diversity scores                       │
-│ • Evolution tracking over time                               │
-└─────────────────────────────────────────────────────────────┘
-                              ↓↑
-┌─────────────────────────────────────────────────────────────┐
-│                 Layer 3: Embedding Similarity                │
-│                (Deep Semantic Understanding)                 │
-├─────────────────────────────────────────────────────────────┤
-│ • Vector similarity search                                   │
-│ • Semantic cohesion measurement                              │
-│ • Narrative drift detection                                  │
-│ • Duplicate/near-duplicate detection                         │
-│ • Cross-language semantic matching                           │
-└─────────────────────────────────────────────────────────────┘
+**Purpose**: Identify potential coordinated inauthentic behavior
+**Response**:
+```json
+{
+  "high_risk_authors": [
+    {
+      "author_id": 12345,
+      "username": "suspicious_account",
+      "coordination_risk_score": 0.89,
+      "evidence": {
+        "hashtag_coordination": 0.95,
+        "timing_patterns": 0.82,
+        "content_similarity": 0.91
+      },
+      "monitoring_priority": 1.0,
+      "threat_level": "HIGH"
+    }
+  ],
+  "coordinated_campaigns": [
+    {
+      "campaign_id": "camp_001",
+      "participant_count": 47,
+      "coordination_score": 0.94,
+      "time_window": "2025-11-15 14:00 - 16:30",
+      "shared_content": ["hashtag_xyz", "narrative_abc"]
+    }
+  ]
+}
+```
+
+#### **2. Influence Network Analysis**
+```http
+GET /api/v1/intelligence/influence/network-analysis
+```
+**Purpose**: Identify key influencers and their network positions
+**Response**:
+```json
+{
+  "network_analysis": {
+    "bridge_accounts": [
+      {
+        "author_id": 67890,
+        "username": "bridge_account",
+        "betweenness_centrality": 0.76,
+        "network_reach": 1250,
+        "role": "Information Bridge",
+        "influence_score": 0.85
+      }
+    ],
+    "emerging_influencers": [
+      {
+        "author_id": 54321,
+        "growth_rate": 0.34,
+        "influence_trajectory": "rising",
+        "monitoring_priority": 0.78
+      }
+    ],
+    "network_metrics": {
+      "total_nodes": 15420,
+      "total_edges": 45230,
+      "cluster_count": 12,
+      "network_density": 0.19
+    }
+  }
+}
+```
+
+#### **3. Narrative Intelligence & Trends**
+```http
+GET /api/v1/intelligence/narratives/evolution
+```
+**Purpose**: Track how narratives evolve and detect emerging discussions
+**Response**:
+```json
+{
+  "narrative_intelligence": {
+    "trending_themes": [
+      {
+        "theme_id": 15,
+        "theme_name": "Climate Policy",
+        "growth_rate": 0.45,
+        "engagement_velocity": 234.5,
+        "viral_content_count": 23,
+        "risk_indicators": ["rapid_growth", "coordination_detected"]
+      }
+    ],
+    "emerging_narratives": [
+      {
+        "cluster_id": "emerg_001",
+        "size": 145,
+        "growth_rate": 0.67,
+        "distinctive_keywords": ["new_policy", "urgent_action"],
+        "estimated_reach": 50000,
+        "confidence": 0.82
+      }
+    ],
+    "narrative_shifts": [
+      {
+        "theme_id": 8,
+        "shift_type": "sentiment_change",
+        "magnitude": 0.34,
+        "direction": "negative",
+        "timeframe": "last_48_hours"
+      }
+    ]
+  }
+}
+```
+
+#### **4. Real-Time Intelligence Alerts**
+```http
+GET /api/v1/intelligence/alerts/active
+```
+**Purpose**: Provide real-time intelligence alerts for immediate action
+**Response**:
+```json
+{
+  "active_alerts": [
+    {
+      "alert_id": "alert_001",
+      "type": "coordination_spike",
+      "severity": "HIGH",
+      "detected_at": "2025-11-16T14:30:00Z",
+      "description": "Unusual coordination detected in climate discussion",
+      "affected_themes": [12, 15, 18],
+      "participants": 67,
+      "evidence_score": 0.91,
+      "recommended_action": "immediate_investigation"
+    },
+    {
+      "alert_id": "alert_002",
+      "type": "influence_surge",
+      "severity": "MEDIUM",
+      "detected_at": "2025-11-16T13:15:00Z",
+      "description": "New high-influence account emerged",
+      "author_id": 98765,
+      "influence_growth": 0.54,
+      "monitoring_priority": 0.78
+    }
+  ]
+}
+```
+
+#### **5. Strategic Intelligence Summary**
+```http
+GET /api/v1/intelligence/summary/strategic
+```
+**Purpose**: High-level intelligence briefing for strategic decision making
+**Response**:
+```json
+{
+  "strategic_intelligence": {
+    "period": "last_7_days",
+    "overall_threat_level": "MEDIUM",
+    "key_findings": {
+      "coordination_incidents": 3,
+      "new_influencers_detected": 12,
+      "narrative_shifts": 5,
+      "viral_campaigns": 8
+    },
+    "top_threats": [
+      {
+        "threat_type": "coordinated_campaign",
+        "confidence": 0.87,
+        "impact_assessment": "medium",
+        "geographic_focus": "regional",
+        "themes_affected": ["climate", "policy", "energy"]
+      }
+    ],
+    "intelligence_gaps": [
+      "limited_coverage_southeast",
+      "need_more_arabic_sources"
+    ],
+    "recommendations": [
+      "increase_monitoring_theme_12",
+      "investigate_author_cluster_abc",
+      "expand_collection_queries"
+    ]
+  }
+}
 ```
 
 ---
 
-## Unified Analytics Capabilities
+## Intelligence Functions for MCP Integration
 
-### 1. Theme Health & Performance (Original Phase 2)
-**Purpose**: Monitor performance of manually defined themes
+### **Available SQL Intelligence Functions**:
 
-#### Endpoints:
-- `GET /api/v1/analytics/themes` - List themes with health scores
-- `GET /api/v1/analytics/themes/{id}/health` - Detailed metrics with CAGR
-- `GET /api/v1/analytics/themes/{id}/timeline` - Daily activity with rolling averages
-- `GET /api/v1/analytics/themes/{id}/hashtags` - Top hashtags
-- `GET /api/v1/analytics/themes/{id}/influencers` - Top authors by engagement
-- `GET /api/v1/analytics/themes/{id}/hourly` - Hourly activity patterns
-- `POST /api/v1/analytics/themes/compare` - Compare multiple themes
-
-#### Key Metrics:
-- **CAGR (Compound Annual Growth Rate)**: Growth velocity indicator
-- **Engagement Trends**: Likes, retweets, replies over time
-- **Author Diversity**: Unique authors vs total tweets
-- **Temporal Patterns**: Peak activity hours/days
-
----
-
-### 2. Semantic Cohesion & Quality
-
-**Purpose**: Measure how semantically focused themes and topics are
-
-#### New Endpoints:
-- `GET /api/v1/analytics/themes/{id}/semantic-cohesion`
-  ```json
-  {
-    "theme_id": 1,
-    "cohesion_score": 0.73,  // 0-1, higher = more focused
-    "interpretation": "moderately cohesive",
-    "sub_clusters": 3,
-    "outlier_percentage": 5.2,
-    "representative_centroid": [0.123, -0.456, ...],
-    "variance": 0.31
-  }
-  ```
-
-- `GET /api/v1/analytics/topics/{id}/semantic-quality`
-  ```json
-  {
-    "topic_id": 42,
-    "coherence_score": 0.81,  // From topic_definitions
-    "embedding_cohesion": 0.76,  // From embeddings
-    "combined_quality": 0.785,
-    "interpretation": "high quality, well-defined topic"
-  }
-  ```
-
-#### Implementation:
 ```sql
--- Calculate semantic cohesion for a theme
-WITH theme_embeddings AS (
-    SELECT e.embedding
-    FROM tweet_embeddings e
-    JOIN tweets t ON e.tweet_id = t.tweet_id
-    JOIN collection_sessions cs ON t.session_id = cs.session_id
-    WHERE cs.theme_id = :theme_id
-    LIMIT 1000  -- Sample for performance
-),
-pairwise_similarities AS (
-    SELECT
-        1 - (e1.embedding <=> e2.embedding) as similarity
-    FROM theme_embeddings e1
-    CROSS JOIN theme_embeddings e2
-    WHERE e1.embedding != e2.embedding
-)
-SELECT
-    AVG(similarity) as cohesion_score,
-    STDDEV(similarity) as variance,
-    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY similarity) as median_similarity
-FROM pairwise_similarities;
+-- Strategic Intelligence
+osint.compute_author_intelligence(date, period, threshold)
+osint.get_top_influencers(date, period, limit)
+osint.get_coordination_risks(date, period, min_risk, limit)
+osint.get_network_bridges(date, period, min_centrality, limit)
+
+-- Trend Analysis
+osint.get_intelligence_trends(start_date, metric_name)
+osint.get_monthly_intelligence_summary()
+osint.compute_periodic_intelligence(start_date, window, threshold)
+
+-- Discovery & Analytics
+osint.get_daily_metrics_summary(date)
+osint.get_author_intelligence_summary(date, period, limit)
+osint.compare_metrics_performance()
 ```
 
 ---
 
-### 3. Theme-Topic Alignment Analysis
+## Next Steps: API Cleanup & Redesign
 
-**Purpose**: Understand how ML topics map to business themes
+### **Phase 1: Remove Non-Intelligence APIs**
+**APIs to Remove/Deprecate**:
+- Basic CRUD operations (`POST /themes`, `PUT /themes/{id}`, etc.)
+- Simple data retrieval without intelligence value
+- Dashboard-specific formatting endpoints
+- Pagination-heavy list endpoints
 
-#### New Endpoints:
-- `GET /api/v1/analytics/themes/{id}/topic-alignment`
-  ```json
-  {
-    "theme_id": 1,
-    "theme_name": "Climate Policy",
-    "dominant_topics": [
-      {
-        "topic_id": 23,
-        "topic_name": "renewable_energy",
-        "tweet_percentage": 34.5,
-        "avg_probability": 0.67,
-        "keywords": ["solar", "wind", "renewable"]
-      }
-    ],
-    "topic_diversity": 0.68,  // Shannon entropy
-    "unexpected_topics": [...]  // Topics with low expected probability
-  }
-  ```
+### **Phase 2: Intelligence API Implementation**
+**Priority Order**:
+1. **Threat Detection APIs** - Coordination & influence analysis
+2. **Real-time Alerts** - Immediate intelligence notifications
+3. **Strategic Intelligence** - High-level briefings and trends
+4. **Network Analysis** - Influence mapping and bridge detection
+5. **Narrative Intelligence** - Content evolution and emerging discussions
 
-- `GET /api/v1/analytics/alignment/matrix`
-  - Returns theme-to-topic correlation matrix
-  - Identifies themes with overlapping topics
-
-#### Use Cases:
-- Validate if themes capture intended content
-- Discover unexpected discussions within themes
-- Identify theme drift over time
+### **Phase 3: MCP Integration**
+**MCP-Specific Features**:
+- **Context-aware responses**: APIs that understand the intelligence context
+- **Actionable insights**: Every response includes recommended actions
+- **Confidence scoring**: All intelligence includes confidence/reliability scores
+- **Natural language summaries**: Human-readable intelligence briefings
+- **Threat prioritization**: Risk-based ranking of all findings
 
 ---
 
-### 4. Expert Network Discovery
+## Success Metrics for Intelligence APIs
 
-**Purpose**: Identify subject matter experts and influencers
+### **Intelligence Quality**:
+- **Threat Detection Accuracy**: >85% true positive rate on coordination detection
+- **Influence Prediction**: >80% accuracy in identifying emerging influencers
+- **Alert Relevance**: >90% of alerts lead to actionable intelligence
+- **Response Time**: <200ms for real-time intelligence queries
 
-#### New Endpoints:
-- `GET /api/v1/analytics/experts/by-topic/{topic_id}`
-  ```json
-  {
-    "topic_id": 23,
-    "experts": [
-      {
-        "author_id": "12345",
-        "username": "@energy_expert",
-        "expertise_score": 0.89,  // avg_probability from author_topics
-        "tweet_count": 156,
-        "total_engagement": 45000,
-        "consistency": 0.92  // How consistently they discuss this topic
-      }
-    ]
-  }
-  ```
-
-- `GET /api/v1/analytics/themes/{id}/expert-network`
-  - Cross-references theme tweets with author expertise
-  - Returns network graph data for visualization
-
-#### Implementation:
-```sql
--- Find experts for a theme based on topic expertise
-WITH theme_topics AS (
-    SELECT DISTINCT tt.topic_id, COUNT(*) as topic_count
-    FROM tweets t
-    JOIN collection_sessions cs ON t.session_id = cs.session_id
-    JOIN tweet_topics tt ON t.tweet_id = tt.tweet_id
-    WHERE cs.theme_id = :theme_id
-    GROUP BY tt.topic_id
-),
-expert_scores AS (
-    SELECT
-        at.author_id,
-        up.username,
-        SUM(at.avg_probability * tt.topic_count) / SUM(tt.topic_count) as expertise_score,
-        SUM(at.tweet_count) as total_tweets,
-        SUM(at.total_engagement) as total_engagement
-    FROM author_topics at
-    JOIN theme_topics tt ON at.topic_id = tt.topic_id
-    LEFT JOIN twitter_user_profiles up ON at.author_id = up.user_id
-    GROUP BY at.author_id, up.username
-)
-SELECT * FROM expert_scores
-ORDER BY expertise_score DESC
-LIMIT 20;
-```
+### **MCP Integration Success**:
+- **Context Relevance**: AI agents can effectively use intelligence for decision-making
+- **Action Rate**: >70% of intelligence leads to investigative actions
+- **False Positive Rate**: <15% for high-confidence alerts
+- **Intelligence Coverage**: >95% of significant events detected within 4 hours
 
 ---
 
-### 5. Narrative Evolution & Drift Detection
-
-**Purpose**: Track how discussions evolve over time
-
-#### New Endpoints:
-- `GET /api/v1/analytics/themes/{id}/narrative-evolution`
-  ```json
-  {
-    "theme_id": 1,
-    "time_periods": [
-      {
-        "period": "2024-01-01 to 2024-01-07",
-        "dominant_topics": [23, 45, 67],
-        "centroid_embedding": [...],
-        "drift_from_previous": 0.23  // Semantic distance
-      }
-    ],
-    "total_drift": 0.67,
-    "drift_interpretation": "significant narrative shift detected"
-  }
-  ```
-
-- `GET /api/v1/analytics/topics/{id}/evolution`
-  - Uses topic_evolution table
-  - Tracks keyword changes over time
-  - Identifies topic splits/merges
-
-#### Visualization Support:
-- Time-series of topic distributions
-- Embedding space trajectory over time
-- Sankey diagrams for topic flow
-
----
-
-### 6. Emerging Patterns & Anomaly Detection
-
-**Purpose**: Early warning system for new narratives
-
-#### New Endpoints:
-- `GET /api/v1/analytics/themes/{id}/emerging-clusters`
-  ```json
-  {
-    "emerging_clusters": [
-      {
-        "cluster_id": "temporal_cluster_1",
-        "size": 45,
-        "growth_rate": 0.34,  // per day
-        "representative_tweets": [...],
-        "distinctive_keywords": ["new_term", "emerging_issue"],
-        "centroid_distance_from_theme": 0.56
-      }
-    ]
-  }
-  ```
-
-- `GET /api/v1/analytics/anomalies/detect`
-  - Outlier tweets (low topic probability + far from embeddings)
-  - Sudden topic distribution changes
-  - Unusual author behavior patterns
-
-#### Detection Methods:
-1. **Statistical**: Z-score on engagement, topic probabilities
-2. **Embedding-based**: Distance from cluster centroids
-3. **Temporal**: Sudden changes in topic evolution
-
----
-
-### 7. Cross-Theme Intelligence
-
-**Purpose**: Discover hidden connections between themes
-
-#### New Endpoints:
-- `GET /api/v1/analytics/cross-theme/similarity-matrix`
-  ```json
-  {
-    "similarity_matrix": [
-      [1.0, 0.45, 0.23],  // Theme similarities
-      [0.45, 1.0, 0.67],
-      [0.23, 0.67, 1.0]
-    ],
-    "theme_ids": [1, 2, 3],
-    "method": "embedding_centroid_similarity"
-  }
-  ```
-
-- `GET /api/v1/analytics/cross-theme/topic-bridges`
-  - Topics appearing in multiple themes
-  - Information cascade paths
-  - Narrative migration patterns
-
----
-
-### 8. Content Authentication & Campaign Detection
-
-**Purpose**: Identify coordinated inauthentic behavior
-
-#### New Endpoints:
-- `GET /api/v1/analytics/campaigns/detect`
-  ```json
-  {
-    "potential_campaigns": [
-      {
-        "cluster_id": "campaign_1",
-        "indicators": {
-          "temporal_coordination": 0.89,  // Tweets at same time
-          "semantic_similarity": 0.94,     // Very similar content
-          "author_network_density": 0.76,  // Authors connected
-          "media_reuse": 0.82             // Same media shared
-        },
-        "tweet_count": 234,
-        "unique_authors": 12,
-        "time_window": "2 hours",
-        "confidence": 0.85
-      }
-    ]
-  }
-  ```
-
-#### Detection Algorithm:
-1. Find high-similarity tweet clusters (embeddings)
-2. Check temporal patterns
-3. Analyze author relationships
-4. Verify media reuse patterns
-5. Calculate confidence score
-
----
-
-### 9. Media Pattern Analysis
-
-**Purpose**: Track visual narrative trends
-
-#### New Endpoints:
-- `GET /api/v1/analytics/themes/{id}/media-patterns`
-  ```json
-  {
-    "unique_media_items": 345,
-    "media_reuse_rate": 0.34,
-    "viral_media": [
-      {
-        "media_url": "...",
-        "share_count": 567,
-        "unique_authors": 234,
-        "velocity": 45.3  // shares per hour
-      }
-    ],
-    "media_clusters": [...]  // Similar media grouped
-  }
-  ```
-
----
-
-## Implementation Roadmap
-
-### Phase 1: Foundation (Week 1)
-1. ✅ Create models for all ML tables
-2. ✅ Build base repositories with vector operations
-3. ✅ Implement original Phase 2 theme analytics
-
-### Phase 2: Semantic Layer (Week 2)
-1. Add embedding similarity endpoints
-2. Implement cohesion scoring
-3. Create clustering services
-
-### Phase 3: Topic Integration (Week 3)
-1. Theme-topic alignment analysis
-2. Expert network discovery
-3. Cross-reference all three layers
-
-### Phase 4: Advanced Analytics (Week 4)
-1. Narrative evolution tracking
-2. Anomaly detection
-3. Campaign identification
-
-### Phase 5: Optimization & UI (Week 5)
-1. Performance optimization
-2. Caching strategies
-3. Visualization support
-4. Dashboard integration
-
----
-
-## Performance Considerations
-
-### Caching Strategy
-```python
-# Redis cache for expensive calculations
-@cache.memoize(timeout=3600)
-async def get_theme_cohesion(theme_id: int):
-    # Expensive embedding calculations
-    pass
-```
-
-### Batch Processing
-```python
-# Background jobs for heavy computations
-@celery.task
-def update_theme_clusters():
-    # Run nightly cluster updates
-    pass
-```
-
-### Query Optimization
-- Use materialized views for frequently accessed aggregations
-- Implement pagination for large result sets
-- Sample embeddings for real-time calculations
-
----
-
-## Success Metrics
-
-### Technical KPIs
-- API response time < 500ms for most endpoints
-- Clustering accuracy > 80% (silhouette score)
-- Anomaly detection precision > 70%
-
-### Business Value
-- 50% reduction in time to identify emerging narratives
-- 80% improvement in expert identification accuracy
-- 90% accuracy in coordinated campaign detection
-
----
-
-## Security & Privacy
-
-### Data Protection
-- No PII in embeddings
-- Author anonymization options
-- Rate limiting on API endpoints
-
-### Access Control
-- Role-based permissions
-- Audit logging
-- API key rotation
-
----
-
-## Future Enhancements
-
-### Near-term (3-6 months)
-1. Multi-language support via multilingual embeddings
-2. Real-time streaming analytics
-3. Custom topic model training
-
-### Long-term (6-12 months)
-1. Graph neural networks for network analysis
-2. Transformer-based narrative prediction
-3. Automated report generation
-
----
-
-## Conclusion
-
-This unified architecture leverages:
-- **Traditional metrics** for business understanding
-- **ML topics** for semantic discovery
-- **Embeddings** for deep similarity analysis
-
-Together, they provide unprecedented insight into information flows, narrative evolution, and influence networks in your OSINT data.
-
-The system is designed to be:
-- **Modular**: Each layer can function independently
-- **Scalable**: PostgreSQL + caching handles large volumes
-- **Actionable**: Clear metrics and interpretations
-- **Extensible**: Easy to add new analytics capabilities
+**System Status**: 🚧 Ready for Intelligence API Development
+**Current Focus**: Transform CRUD APIs → Intelligence APIs for MCP
+**Architecture**: Multi-tier intelligence with 68,968 strategic profiles ready for analysis

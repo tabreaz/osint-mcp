@@ -85,3 +85,7 @@ dmypy.json
 # API specific
 osint-api/.env
 osint-api/.venv/
+
+# OSINT Intel Computation - Deprecated/Archived Files
+scripts/intel_computation/deprecated_scripts/
+scripts/intel_computation/archive_old_docs/

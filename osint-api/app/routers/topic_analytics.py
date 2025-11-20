@@ -22,8 +22,8 @@ router = APIRouter(
 )
 
 
-@router.get("/theme-topics", response_model=Dict[str, ThemeTopicAnalytics])
-async def get_theme_topic_analytics(
+@router.get("/topics-per-theme", response_model=Dict[str, ThemeTopicAnalytics])
+async def get_topics_per_theme(
     theme_id: Optional[int] = Query(None, description="Filter by theme ID"),
     start_date: Optional[datetime] = Query(None, description="Start date filter"),
     end_date: Optional[datetime] = Query(None, description="End date filter"),
@@ -41,16 +41,16 @@ async def get_theme_topic_analytics(
     )
 
 
-@router.get("/author-expertise", response_model=List[AuthorExpertise])
-async def get_author_expertise(
+@router.get("/top-authors-by-topic", response_model=List[AuthorExpertise])
+async def get_top_authors_by_topic(
     topic_id: Optional[int] = Query(None, description="Filter by topic ID"),
     min_tweet_count: int = Query(5, ge=1, description="Minimum tweets per topic"),
     limit: int = Query(100, le=1000, description="Maximum results to return"),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get authors with expertise in specific topics.
-    Returns authors who frequently post about topics with high engagement.
+    Get top authors who post about specific topics.
+    Returns authors ranked by post count and engagement on the topic.
     """
     repo = TopicAnalyticsRepository(db)
     return await repo.get_author_expertise(
@@ -60,16 +60,17 @@ async def get_author_expertise(
     )
 
 
-@router.get("/evolution-trends", response_model=List[TopicEvolutionTrend])
-async def get_topic_evolution_trends(
+@router.get("/topic-trends-over-time", response_model=List[TopicEvolutionTrend])
+async def get_topic_trends_over_time(
     topic_ids: Optional[str] = Query(None, description="Comma-separated topic IDs"),
     hours: int = Query(24, ge=1, le=720, description="Hours to look back"),
     min_growth_rate: Optional[float] = Query(None, description="Minimum growth rate filter"),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get topic evolution trends over time.
-    Shows how topics grow or decline in volume and engagement.
+    Get topic popularity trends over time.
+    Shows hourly volume changes and growth rates for topics.
+    Note: If empty, data is computed on-demand from tweet history.
     """
     # Parse topic IDs if provided
     parsed_topic_ids = None
@@ -86,8 +87,8 @@ async def get_topic_evolution_trends(
 
 
 
-@router.post("/theme-topics", response_model=Dict[str, ThemeTopicAnalytics])
-async def post_theme_topic_analytics(
+@router.post("/topics-per-theme", response_model=Dict[str, ThemeTopicAnalytics])
+async def post_topics_per_theme(
     query: TopicAnalyticsQuery,
     db: AsyncSession = Depends(get_db)
 ):
@@ -102,8 +103,8 @@ async def post_theme_topic_analytics(
     )
 
 
-@router.post("/author-expertise", response_model=List[AuthorExpertise])
-async def post_author_expertise(
+@router.post("/top-authors-by-topic", response_model=List[AuthorExpertise])
+async def post_top_authors_by_topic(
     query: AuthorExpertiseQuery,
     db: AsyncSession = Depends(get_db)
 ):
@@ -118,8 +119,8 @@ async def post_author_expertise(
     )
 
 
-@router.post("/evolution-trends", response_model=List[TopicEvolutionTrend])
-async def post_evolution_trends(
+@router.post("/topic-trends-over-time", response_model=List[TopicEvolutionTrend])
+async def post_topic_trends_over_time(
     query: EvolutionTrendQuery,
     db: AsyncSession = Depends(get_db)
 ):
