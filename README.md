@@ -213,22 +213,16 @@ curl -X GET "http://localhost:8080/api/v1/topic-analytics/evolution-trends?hours
   -H "X-API-Key: your-api-key"
 ```
 
-## 🗄️ Database Schema
+## 🗄️ Data Models
 
-### Core Tables
-- `tweets_deduplicated` - Tweet data with engagement
-- `tweet_collections` - Theme collections
-- `themes` - Business-defined categories
-- `projects` - Organizational units
-- `monitored_users` - Tracked accounts
+### Primary Entities
+- **Topics** - LLM-refined, categorized topics with recommendations
+- **Themes** - Business-defined monitoring categories
+- **Projects** - Organizational units for grouping themes
+- **Monitored Users** - Tracked social media accounts
+- **Topic Analytics** - Author expertise and evolution metrics
 
-### ML/AI Tables
-- `topic_definitions` - Raw ML topics (messy)
-- `topic_definitions_refined` ⭐ - LLM-cleaned topics (PRIMARY)
-- `tweet_topics` - Tweet-topic assignments
-- `author_topics` - Author expertise metrics
-- `topic_evolution` - Time-series trends
-- `tweet_embeddings` - OpenAI vectors
+See `API_SCHEMA_GUIDE.md` for detailed schema information.
 
 ## 🔧 Preprocessing Scripts
 
@@ -247,8 +241,9 @@ python compute_evolution.py --days 30
 ## 📚 Documentation
 
 - **API Docs**: http://localhost:8080/docs (Swagger)
-- **Architecture**: `comprehensive_analytics_architecture.md`
-- **Topic Integration**: `osint-api/TOPIC_ANALYTICS_DOCUMENTATION.md`
+- **Schema Guide**: `API_SCHEMA_GUIDE.md` - Clean data model reference
+- **Architecture**: `comprehensive_analytics_architecture.md` - System design
+- **Topic Details**: `osint-api/TOPIC_ANALYTICS_DOCUMENTATION.md` - Implementation details
 
 ## 🎯 Key Features Explained
 
