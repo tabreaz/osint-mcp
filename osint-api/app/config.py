@@ -24,7 +24,11 @@ class Settings(BaseSettings):
     TWEETS_TABLE: str = "tweets_deduplicated"
     COLLECTIONS_TABLE: str = "tweet_collections"
     USER_NETWORK_TABLE: str = "user_network"
-    USER_PROFILES_TABLE: str = "user_profiles"
+    USER_PROFILES_TABLE: str = "twitter_user_profiles"
+    THEMES_TABLE: str = "themes"
+    PROJECTS_TABLE: str = "projects"
+    QUERIES_TABLE: str = "queries"
+    MONITORED_USERS_TABLE: str = "monitored_users"
 
     class Config:
         env_file = ".env"
